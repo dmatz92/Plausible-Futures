@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plausible Futures Workshop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: a single column workbook with a 4-step rail; step 4 is a 2x2 scenario matrix. */
+:root{
+  --bg:#f4f6f8;
+  --surface:#ffffff;
+  --ink:#16222e;
+  --muted:#5b6b7a;
+  --line:#d6dde4;
+  --accent:#1f5f8b;      /* axis 1 / primary */
+  --accent2:#b5651d;     /* axis 2 */
+  --accent-soft:#e3eef6;
+  --accent2-soft:#f6ebe0;
+  --focus:#1f5f8b;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f161d; --surface:#17212b; --ink:#e6edf3; --muted:#9aabba; --line:#2b3a48;
+    --accent:#6aaee0; --accent2:#e3a062; --accent-soft:#1a2f40; --accent2-soft:#352619; --focus:#6aaee0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f161d; --surface:#17212b; --ink:#e6edf3; --muted:#9aabba; --line:#2b3a48;
+  --accent:#6aaee0; --accent2:#e3a062; --accent-soft:#1a2f40; --accent2-soft:#352619; --focus:#6aaee0;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5}
+.wrap{max-width:960px;margin:0 auto;padding:24px 16px 64px;display:flex;flex-direction:column;gap:20px}
+header h1{font-family:var(--display);font-size:clamp(1.6rem,4vw,2.2rem);margin:0;text-wrap:balance;letter-spacing:-.01em}
+header p{margin:6px 0 0;color:var(--muted);max-width:65ch}
+
+/* Step rail */
+.rail{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;list-style:none;padding:0;margin:0}
+.rail button{width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--muted);
+  border-radius:10px;padding:10px 12px;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.rail .n{font-family:var(--display);font-weight:700;font-size:.85rem}
+.rail .t{font-size:.92rem;font-weight:600;line-height:1.25}
+.rail button[aria-current="step"]{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
+.rail button[aria-current="step"] .n{color:var(--accent)}
+.rail button.done .n::after{content:" ✓";color:var(--accent)}
+.rail button:disabled{opacity:.5;cursor:not-allowed}
+@media (max-width:560px){ .rail .t{font-size:.8rem} .rail button{padding:8px} }
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.panel h2{font-family:var(--display);font-size:1.35rem;margin:0;text-wrap:balance}
+.lede{margin:0;color:var(--muted);max-width:65ch}
+.note{font-size:.9rem;color:var(--muted);margin:0}
+
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--ink)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center}
+.actions .grp{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Step 1 table */
+.utable{width:100%;border-collapse:collapse}
+.utable th{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:6px 6px;border-bottom:1px solid var(--line)}
+.utable td{padding:6px;vertical-align:top;border-bottom:1px solid var(--line)}
+.utable input{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:8px}
+.utable .del{border:none;background:none;color:var(--muted);cursor:pointer;font-size:1.2rem;padding:6px 8px;border-radius:6px}
+.utable .del:hover{color:var(--ink);background:var(--bg)}
+@media (max-width:640px){
+  .utable thead{display:none}
+  .utable,.utable tbody,.utable tr,.utable td{display:block;width:100%}
+  .utable tr{border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:10px;position:relative}
+  .utable td{border:none;padding:4px 0}
+  .utable td[data-label]::before{content:attr(data-label);display:block;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .utable td.x{position:absolute;top:4px;right:4px;width:auto}
+}
+.example-flag{display:inline-block;font-size:.75rem;font-weight:700;background:var(--accent2-soft);color:var(--accent2);border-radius:999px;padding:2px 10px}
+
+/* Step 2 picks */
+.picks{display:grid;gap:8px}
+.pick{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;background:var(--bg)}
+.pick input{margin-top:4px;width:20px;height:20px;accent-color:var(--accent)}
+.pick.on{border-color:var(--accent);background:var(--accent-soft)}
+.pick.dim{opacity:.55}
+.pick .nm{font-weight:700}
+.pick .poles{font-size:.92rem;color:var(--muted)}
+.tag{font-family:var(--display);font-size:.75rem;font-weight:700;border-radius:4px;padding:1px 6px;margin-left:6px;color:var(--surface)}
+.tag.x{background:var(--accent)} .tag.y{background:var(--accent2)}
+
+/* Step 3 sliders */
+.slider-card{border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.slider-card h3{margin:0;font-size:1.05rem}
+.ends{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:end}
+.end{display:flex;flex-direction:column;gap:2px}
+.end.r{text-align:right}
+.end .pct{font-family:var(--display);font-size:1.8rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.end .lbl{font-size:.92rem;color:var(--muted)}
+.vs{color:var(--muted);font-size:.85rem;padding-bottom:4px}
+input[type=range]{width:100%;height:32px}
+.slider-card.x input[type=range]{accent-color:var(--accent)}
+.slider-card.y input[type=range]{accent-color:var(--accent2)}
+.slider-card.x .end .pct{color:var(--accent)}
+.slider-card.y .end .pct{color:var(--accent2)}
+.bar{height:10px;border-radius:999px;overflow:hidden;display:flex;background:var(--line)}
+.bar span{display:block;height:100%}
+
+/* Step 4 matrix: one bordered box split into four quadrants */
+.matrix{display:grid;grid-template-columns:24px 1fr;grid-template-rows:1fr auto;gap:6px}
+.ylab{grid-column:1;grid-row:1;display:flex;flex-direction:column;justify-content:space-between;align-items:center;font-size:.8rem;font-weight:700;color:var(--accent2)}
+.ylab span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-height:48%}
+.xlab{grid-column:2;grid-row:2;display:flex;justify-content:space-between;gap:8px;font-size:.8rem;font-weight:700;color:var(--accent)}
+.xlab span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:48%}
+.box{grid-column:2;grid-row:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;
+  border:2px solid var(--ink);border-radius:6px;overflow:hidden;background:var(--surface)}
+.q{position:relative;display:flex;flex-direction:column;gap:4px;padding:12px;min-height:260px}
+.q:nth-child(1){border-right:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+.q:nth-child(2){border-bottom:2px solid var(--ink)}
+.q:nth-child(3){border-right:2px solid var(--ink)}
+.q .shade{position:absolute;inset:0;background:var(--accent);pointer-events:none}
+.q > *:not(.shade){position:relative}
+.q .top{display:flex;justify-content:space-between;align-items:baseline;gap:6px;flex-wrap:wrap}
+.q .jp{font-family:var(--display);font-size:1.7rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.q .likely{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;background:var(--ink);color:var(--surface);border-radius:999px;padding:2px 8px}
+.q .combo{font-size:.82rem;line-height:1.3;color:var(--muted)}
+.q .combo b.x{color:var(--accent)} .q .combo b.y{color:var(--accent2)}
+.q input.name,.q textarea{border:none;background:transparent;padding:4px 2px;border-radius:4px;width:100%}
+.q input.name{font-weight:700;font-size:1rem;border-bottom:1px dashed var(--line);border-radius:0}
+.q textarea{flex:1;resize:none;min-height:120px;line-height:1.4}
+.q input.name:hover,.q textarea:hover{background:color-mix(in srgb, var(--surface) 70%, transparent)}
+.q input.name::placeholder,.q textarea::placeholder{color:var(--muted);opacity:.85}
+@media (max-width:560px){
+  .q{padding:8px;min-height:240px}
+  .q .jp{font-size:1.35rem}
+  .q .combo{font-size:.75rem}
+  .q input.name{font-size:.9rem}
+  .q textarea{font-size:.9rem}
+}
+.axes-legend{display:flex;flex-wrap:wrap;gap:12px 24px;font-size:.92rem}
+.axes-legend div{display:flex;gap:6px;align-items:baseline}
+.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+.copied{font-size:.9rem;color:var(--accent);font-weight:600}
+[hidden]{display:none !important}
+@media (prefers-reduced-motion: no-preference){ .bar span,.q .shade{transition:all .2s ease} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Plausible Futures Workshop</h1>
+    <p>Name the big uncertainties, pick two, estimate which way each could break, then plan for the four futures they create.</p>
+  </header>
+
+  <ol class="rail" id="rail" aria-label="Steps">
+    <li><button data-step="1"><span class="n">Step 1</span><span class="t">List uncertainties</span></button></li>
+    <li><button data-step="2"><span class="n">Step 2</span><span class="t">Choose two</span></button></li>
+    <li><button data-step="3"><span class="n">Step 3</span><span class="t">Set probabilities</span></button></li>
+    <li><button data-step="4"><span class="n">Step 4</span><span class="t">Plan for 4 futures</span></button></li>
+  </ol>
+
+  <!-- STEP 1 -->
+  <section class="panel" id="s1">
+    <h2>What could go one way or the other?</h2>
+    <p class="lede">List the forces that matter to your work but that nobody can predict with confidence. For each one, name what is driving the uncertainty, then describe the two poles: the two opposite ways it could realistically turn out.</p>
+    <table class="utable">
+      <thead><tr><th style="width:32%">Uncertainty</th><th>Pole A</th><th>Pole B</th><th style="width:40px"><span class="sr" hidden>Remove</span></th></tr></thead>
+      <tbody id="utbody"></tbody>
+    </table>
+    <div class="actions">
+      <div class="grp">
+        <button class="btn" id="addRow">+ Add uncertainty</button>
+      </div>
+      <button class="btn primary" data-go="2">Next: choose two →</button>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" id="s2" hidden>
+    <h2>Pick the two that matter most</h2>
+    <p class="lede">Choose the two uncertainties with the biggest impact on your work that are also the hardest to call. The first you pick becomes the horizontal axis; the second, the vertical.</p>
+    <div class="picks" id="picks"></div>
+    <p class="note" id="pickCount"></p>
+    <div class="actions">
+      <button class="btn" data-go="1">← Back</button>
+      <button class="btn primary" data-go="3" id="to3">Next: set probabilities →</button>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" id="s3" hidden>
+    <h2>How likely is each pole?</h2>
+    <p class="lede">Drag each slider toward the pole you think is more likely. The two sides of each uncertainty always add up to 100%.</p>
+    <div id="sliders" style="display:flex;flex-direction:column;gap:12px"></div>
+    <div class="actions">
+      <button class="btn" data-go="2">← Back</button>
+      <button class="btn primary" data-go="4">Next: see the four futures →</button>
+    </div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="panel" id="s4" hidden>
+    <h2>Four plausible futures</h2>
+    <p class="lede">Each quadrant is one combination of poles, with its chance of happening. Tap inside a quadrant to name that future and write what you would do if you saw it coming.</p>
+    <div class="axes-legend" id="legend"></div>
+    <div class="matrix" id="matrix"></div>
+    <p class="note">Box percentages multiply the two slider values, which assumes the two uncertainties move independently. If they tend to move together, treat the numbers as a rough guide.</p>
+    <div class="actions">
+      <button class="btn" data-go="3">← Back</button>
+      <div class="grp">
+        <span class="copied" id="copied" aria-live="polite"></span>
+        <button class="btn" id="copyBtn">Copy summary</button>
+        <button class="btn ghost" id="resetBtn">Start over</button>
+      </div>
+    </div>
+    <div id="confirmReset" class="slider-card" hidden>
+      <strong>Clear everything and start over?</strong>
+      <div class="grp" style="display:flex;gap:8px">
+        <button class="btn primary" id="resetYes">Yes, clear it</button>
+        <button class="btn" id="resetNo">Keep my work</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const KEY = "plausible-futures-v1";
+  let uid = 1;
+  const mk = r => Object.assign({id: uid++, name:"", a:"", b:"", ex:false}, r);
+  let state = {
+    step: 1,
+    rows: [mk({}), mk({}), mk({})],
+    picks: [],          // ids, in order: [x, y]
+    prob: {},           // id -> probability (0-100) that pole B happens
+    cells: {}           // "xa-yb" -> {name, plan}
+  };
+
+  function load(){
+    try{
+      const s = JSON.parse(localStorage.getItem(KEY) || "null");
+      if(s && Array.isArray(s.rows)){
+        state = s;
+        const exIds = state.rows.filter(r => r.ex).map(r => r.id);
+        state.rows = state.rows.filter(r => !r.ex);
+        state.picks = (state.picks || []).filter(p => !exIds.includes(p));
+        if(!state.rows.length) state.rows = [];
+        uid = Math.max(0, ...state.rows.map(r=>r.id)) + 1;
+        if(!state.rows.length) state.rows = [mk({}), mk({}), mk({})];
+      }
+    }catch(e){}
+  }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const row = id => state.rows.find(r => r.id === id);
+  const label = (r, side) => (side === "a" ? r.a : r.b) || (side === "a" ? "Pole A" : "Pole B");
+  const nm = r => r.name || "Untitled uncertainty";
+
+  function validPicks(){
+    state.picks = state.picks.filter(id => row(id));
+    return state.picks.length === 2;
+  }
+
+  /* ---------- Step 1 ---------- */
+  function renderRows(){
+    const tb = $("utbody");
+    tb.innerHTML = state.rows.map(r => `
+      <tr data-id="${r.id}">
+        <td data-label="Uncertainty"><input id="n${r.id}" data-f="name" value="${esc(r.name)}" placeholder="e.g., What is causing uncertainty?" aria-label="Uncertainty"></td>
+        <td data-label="Pole A"><input id="a${r.id}" data-f="a" value="${esc(r.a)}" placeholder="e.g., How it could play out one way" aria-label="Pole A"></td>
+        <td data-label="Pole B"><input id="b${r.id}" data-f="b" value="${esc(r.b)}" placeholder="e.g., How it could play out the opposite way" aria-label="Pole B"></td>
+        <td class="x"><button class="del" aria-label="Remove ${esc(nm(r))}" data-del="${r.id}">×</button></td>
+      </tr>`).join("");
+  }
+  $("utbody").addEventListener("input", e => {
+    const tr = e.target.closest("tr"); if(!tr) return;
+    const r = row(+tr.dataset.id); r[e.target.dataset.f] = e.target.value; r.ex = false;
+    save();
+  });
+  $("utbody").addEventListener("click", e => {
+    const id = e.target.dataset.del; if(!id) return;
+    state.rows = state.rows.filter(r => r.id !== +id);
+    state.picks = state.picks.filter(p => p !== +id);
+    if(!state.rows.length) state.rows.push(mk({}));
+    renderRows(); save(); updateRail();
+  });
+  $("addRow").onclick = () => {
+    const r = mk({}); state.rows.push(r); renderRows(); save();
+    const el = $("n"+r.id); el && el.focus();
+  };
+
+  /* ---------- Step 2 ---------- */
+  function renderPicks(){
+    const usable = state.rows.filter(r => r.name.trim() || r.a.trim() || r.b.trim());
+    state.picks = state.picks.filter(id => usable.some(r => r.id === id));
+    const full = state.picks.length >= 2;
+    $("picks").innerHTML = usable.length ? usable.map(r => {
+      const i = state.picks.indexOf(r.id);
+      const on = i > -1;
+      const tag = on ? `<span class="tag ${i===0?'x':'y'}">${i===0?'Horizontal axis':'Vertical axis'}</span>` : "";
+      return `<label class="pick ${on?'on':''} ${full&&!on?'dim':''}" for="p${r.id}">
+        <input type="checkbox" id="p${r.id}" data-pick="${r.id}" ${on?'checked':''} ${full&&!on?'disabled':''}>
+        <span><span class="nm">${esc(nm(r))}</span>${tag}<br><span class="poles">${esc(label(r,"a"))} ↔ ${esc(label(r,"b"))}</span></span>
+      </label>`;
+    }).join("") : `<p class="note">Add at least two uncertainties in Step 1 first.</p>`;
+    $("pickCount").textContent = `${state.picks.length} of 2 selected` + (state.picks.length===2 ? ". Uncheck one to swap it." : ".");
+    $("to3").disabled = state.picks.length !== 2;
+  }
+  $("picks").addEventListener("change", e => {
+    const id = +e.target.dataset.pick; if(!id) return;
+    if(e.target.checked){ if(state.picks.length < 2) state.picks.push(id); }
+    else state.picks = state.picks.filter(p => p !== id);
+    renderPicks(); save(); updateRail();
+  });
+
+  /* ---------- Step 3 ---------- */
+  function renderSliders(){
+    if(!validPicks()){ $("sliders").innerHTML = `<p class="note">Choose two uncertainties in Step 2 first.</p>`; return; }
+    $("sliders").innerHTML = state.picks.map((id, i) => {
+      const r = row(id); const ax = i===0 ? "x" : "y";
+      if(state.prob[id] == null) state.prob[id] = 50;
+      const pb = state.prob[id];
+      return `<div class="slider-card ${ax}">
+        <h3>${esc(nm(r))}<span class="tag ${ax}">${i===0?'Horizontal axis':'Vertical axis'}</span></h3>
+        <div class="ends">
+          <div class="end"><span class="pct" id="pa${id}">${100-pb}%</span><span class="lbl">${esc(label(r,"a"))}</span></div>
+          <span class="vs">vs</span>
+          <div class="end r"><span class="pct" id="pb${id}">${pb}%</span><span class="lbl">${esc(label(r,"b"))}</span></div>
+        </div>
+        <input type="range" id="sl${id}" min="0" max="100" step="5" value="${pb}" data-sl="${id}"
+          aria-label="Chance that ${esc(nm(r))} goes toward ${esc(label(r,'b'))}" aria-valuetext="${100-pb}% ${esc(label(r,'a'))}, ${pb}% ${esc(label(r,'b'))}">
+      </div>`;
+    }).join("");
+    save();
+  }
+  $("sliders").addEventListener("input", e => {
+    const id = +e.target.dataset.sl; if(!id) return;
+    const v = +e.target.value; state.prob[id] = v;
+    $("pa"+id).textContent = (100-v) + "%"; $("pb"+id).textContent = v + "%";
+    const r = row(id);
+    e.target.setAttribute("aria-valuetext", `${100-v}% ${label(r,'a')}, ${v}% ${label(r,'b')}`);
+    save();
+  });
+
+  /* ---------- Step 4 ---------- */
+  function cellsData(){
+    const [xid, yid] = state.picks; const X = row(xid), Y = row(yid);
+    const px = {a:(100-(state.prob[xid] ?? 50))/100, b:(state.prob[xid] ?? 50)/100};
+    const py = {a:(100-(state.prob[yid] ?? 50))/100, b:(state.prob[yid] ?? 50)/100};
+    // Top row = Y pole B, bottom row = Y pole A; left = X pole A, right = X pole B
+    const order = [["a","b"],["b","b"],["a","a"],["b","a"]];
+    const list = order.map(([xs, ys]) => ({
+      key: `${xid}${xs}-${yid}${ys}`, xs, ys,
+      p: px[xs]*py[ys],
+      xl: label(X, xs), yl: label(Y, ys)
+    }));
+    // Round to whole percents that sum to 100 (largest remainder)
+    const raw = list.map(c => c.p*100), fl = raw.map(Math.floor);
+    let rem = 100 - fl.reduce((s,v)=>s+v,0);
+    raw.map((v,i)=>[v-fl[i],i]).sort((a,b)=>b[0]-a[0]).forEach(([,i])=>{ if(rem>0){ fl[i]++; rem--; } });
+    list.forEach((c,i)=> c.pct = fl[i]);
+    return {X, Y, list};
+  }
+  function renderMatrix(){
+    if(!validPicks()){ $("matrix").innerHTML = `<p class="note">Choose two uncertainties in Step 2 first.</p>`; $("legend").innerHTML=""; return; }
+    const {X, Y, list} = cellsData();
+    const max = Math.max(...list.map(c=>c.pct));
+    $("legend").innerHTML = `
+      <div><span class="sw" style="background:var(--accent)"></span><span><b>Horizontal:</b> ${esc(nm(X))}</span></div>
+      <div><span class="sw" style="background:var(--accent2)"></span><span><b>Vertical:</b> ${esc(nm(Y))}</span></div>`;
+    const cell = c => {
+      const d = state.cells[c.key] || {};
+      const likely = c.pct === max && list.filter(o=>o.pct===max).length === 1;
+      return `<div class="q">
+        <div class="shade" style="opacity:${(c.pct/100)*0.3}"></div>
+        <div class="top"><span class="jp">${c.pct}%</span>${likely?'<span class="likely">Most likely</span>':''}</div>
+        <div class="combo"><b class="x">${esc(c.xl)}</b> + <b class="y">${esc(c.yl)}</b></div>
+        <input class="name" id="nm-${c.key}" data-cell="${c.key}" data-f="name" value="${esc(d.name)}" placeholder="Name this future" aria-label="Name for future: ${esc(c.xl)} and ${esc(c.yl)}">
+        <textarea id="pl-${c.key}" data-cell="${c.key}" data-f="plan" placeholder="What would we do if this future is coming?" aria-label="What would we do if this future is coming: ${esc(c.xl)} and ${esc(c.yl)}">${esc(d.plan)}</textarea>
+      </div>`;
+    };
+    $("matrix").innerHTML = `
+      <div class="ylab"><span>${esc(label(Y,"b"))} ↑</span><span>↓ ${esc(label(Y,"a"))}</span></div>
+      <div class="box">${list.map(cell).join("")}</div>
+      <div class="xlab"><span>← ${esc(label(X,"a"))}</span><span>${esc(label(X,"b"))} →</span></div>`;
+  }
+  $("matrix").addEventListener("input", e => {
+    const k = e.target.dataset.cell; if(!k) return;
+    state.cells[k] = state.cells[k] || {}; state.cells[k][e.target.dataset.f] = e.target.value; save();
+  });
+
+  $("copyBtn").onclick = async () => {
+    if(!validPicks()) return;
+    const {X, Y, list} = cellsData();
+    const px = state.prob[X.id] ?? 50, py = state.prob[Y.id] ?? 50;
+    let t = `PLAUSIBLE FUTURES\n\nUncertainty 1 (horizontal): ${nm(X)}\n  ${label(X,"a")}: ${100-px}%  |  ${label(X,"b")}: ${px}%\n`;
+    t += `Uncertainty 2 (vertical): ${nm(Y)}\n  ${label(Y,"a")}: ${100-py}%  |  ${label(Y,"b")}: ${py}%\n\n`;
+    [...list].sort((a,b)=>b.pct-a.pct).forEach(c => {
+      const d = state.cells[c.key] || {};
+      t += `${c.pct}% — ${d.name ? d.name + " (" : ""}${c.xl} + ${c.yl}${d.name ? ")" : ""}\n`;
+      t += `  Plan: ${(d.plan || "(not filled in)").trim()}\n\n`;
+    });
+    const others = state.rows.filter(r => !state.picks.includes(r.id) && (r.name||r.a||r.b));
+    if(others.length){ t += "Other uncertainties considered:\n" + others.map(r=>`  - ${nm(r)}: ${label(r,"a")} ↔ ${label(r,"b")}`).join("\n") + "\n"; }
+    try{ await navigator.clipboard.writeText(t); $("copied").textContent = "Copied to clipboard"; }
+    catch(e){ $("copied").textContent = "Couldn't copy here; select and copy the text manually."; }
+    setTimeout(()=> $("copied").textContent = "", 3000);
+  };
+  $("resetBtn").onclick = () => { $("confirmReset").hidden = false; $("resetYes").focus(); };
+  $("resetNo").onclick = () => { $("confirmReset").hidden = true; };
+  $("resetYes").onclick = () => {
+    uid = 1;
+    state = {step:1, rows:[mk({}), mk({}), mk({})], picks:[], prob:{}, cells:{}};
+    save(); $("confirmReset").hidden = true; go(1);
+  };
+
+  /* ---------- Navigation ---------- */
+  function canEnter(n){ return n <= 2 || validPicks(); }
+  function updateRail(){
+    document.querySelectorAll("#rail button").forEach(b => {
+      const n = +b.dataset.step;
+      b.toggleAttribute("aria-current", false);
+      if(n === state.step) b.setAttribute("aria-current","step");
+      b.disabled = !canEnter(n);
+      b.classList.toggle("done", n < state.step);
+    });
+  }
+  function go(n){
+    if(!canEnter(n)) n = 2;
+    state.step = n; save();
+    [1,2,3,4].forEach(i => $("s"+i).hidden = i !== n);
+    if(n===1) renderRows();
+    if(n===2) renderPicks();
+    if(n===3) renderSliders();
+    if(n===4) renderMatrix();
+    updateRail();
+  }
+  document.addEventListener("click", e => {
+    const t = e.target.closest("[data-go],[data-step]"); if(!t || t.disabled) return;
+    const n = +(t.dataset.go || t.dataset.step);
+    go(n);
+    if(t.dataset.go) document.querySelector(".wrap").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+  });
+
+  load();
+  go(state.step || 1);
+})();
+</script>
+</body>
+</html>
